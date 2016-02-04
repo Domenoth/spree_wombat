@@ -10,6 +10,19 @@ module Spree
         JSON.parse(OrderSerializer.new(order, root: false).to_json)
       end
 
+      let(:promotion) { create :promotion, :with_order_adjustment }
+
+      let(:action1) do
+        Spree::Promotion::Actions::CreateItemAdjustments.create!(
+          promotion: promotion,
+          calculator: Calculator::FlatRate.new(preferred_amount: 10)
+        )
+      end
+
+      let(:action2) do
+        Spree::Promotion::Actions::FreeShipping.create!(promotion: promotion)
+      end
+
       context "format" do
 
         it "uses the order number for id" do
@@ -61,16 +74,16 @@ module Spree
 
           context 'discount' do
             before do
-              create(:adjustment, adjustable: order, source_type: 'Spree::PromotionAction', amount: -10, order: order)
-              create(:adjustment, adjustable: order.line_items.first, source_type: 'Spree::PromotionAction', amount: -10, order: order)
-              create(:adjustment, adjustable: order.shipments.first, source_type: 'Spree::PromotionAction', amount: -10, order: order)
+              create(:adjustment, adjustable: order, source: action1, amount: -10, order: order)
+              create(:adjustment, adjustable: order.line_items.first, source: action1, amount: -10, order: order)
+              create(:adjustment, adjustable: order.shipments.first, source: action2, amount: -100, order: order)
               #create(:adjustment, adjustable: order, source_type: nil, source_id: nil, amount: -10, label: 'Manual discount')
               order.update_totals
             end
 
             it "discount matches order promo total value" do
               discount_hash = serialized_order["adjustments"].select { |a| a["name"] == "discount" }.first
-              expect(discount_hash["value"]).to eq -30.0
+              expect(discount_hash["value"]).to eq -120.0
             end
           end
 

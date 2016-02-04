@@ -17,7 +17,17 @@ module Spree
 
       context "#process" do
         context "with sane order data" do
-          let!(:message) { ::Hub::Samples::Order.request }
+          let!(:message) do
+            ::Hub::Samples::Order.request.tap do |base|
+              base["order"]["payments"].first["source"] = {
+                name: 'Fox',
+                last_digits: "7424",
+                cc_type: "visa",
+                year: '2022',
+                month: "5"
+              }
+            end
+          end
           let(:handler) { Handler::AddOrderHandler.new(message.to_json) }
 
           let(:line_item) { message['order']['line_items'].first }
@@ -47,7 +57,17 @@ module Spree
         end
 
         context "with custom non existing spree attributes on line_items" do
-          let!(:message) { ::Hub::Samples::Order.request }
+          let!(:message) do
+            ::Hub::Samples::Order.request.tap do |base|
+              base["order"]["payments"].first["source"] = {
+                name: 'Fox',
+                last_digits: "7424",
+                cc_type: "visa",
+                year: '2022',
+                month: "5"
+              }
+            end
+          end
           let(:handler) { Handler::AddOrderHandler.new(message.to_json) }
 
           let(:line_item) do
@@ -66,7 +86,17 @@ module Spree
         end
 
         context "with abbreviated state name" do
-          let!(:message) { ::Hub::Samples::Order.request }
+          let!(:message) do
+            ::Hub::Samples::Order.request.tap do |base|
+              base["order"]["payments"].first["source"] = {
+                name: 'Fox',
+                last_digits: "7424",
+                cc_type: "visa",
+                year: '2022',
+                month: "5"
+              }
+            end
+          end
           let(:handler) {
             message['order']['billing_address']['state'] = 'CA'
             message['order']['shipping_address']['state'] = 'CA'

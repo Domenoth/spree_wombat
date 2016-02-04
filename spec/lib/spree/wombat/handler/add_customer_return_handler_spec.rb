@@ -28,7 +28,7 @@ shared_examples "receives the return items" do |message=/Customer return \d+ was
   it "attempts to accept all of the return items" do
     accept_count = 0
     original_method = Spree::ReturnItem.instance_method(:attempt_accept)
-    Spree::ReturnItem.any_instance.stub(:attempt_accept) do |return_item|
+    allow_any_instance_of(Spree::ReturnItem).to receive(:attempt_accept) do |return_item|
       accept_count += 1
       original_method.bind(return_item).call
     end
@@ -145,7 +145,9 @@ module Spree
 
           context "all return items are for the rma" do
             before do
-              order.inventory_units.each { |iu| rma.return_items << iu.current_or_new_return_item }
+              order.inventory_units.each do |iu|
+                rma.return_items << iu.current_or_new_return_item
+              end
               rma.save!
             end
             it_behaves_like "receives the return items"
@@ -179,7 +181,7 @@ module Spree
           context "there are not enough items to fulfill the return" do
             before do
               inventory_units = order.inventory_units.take(1)
-              Spree::Order.any_instance.stub(:inventory_units) { inventory_units }
+              allow_any_instance_of(Spree::Order).to receive(:inventory_units) { inventory_units }
             end
 
             it_behaves_like "does not receive the return items" do
@@ -193,7 +195,9 @@ module Spree
                 Spree::CustomerReturn.create!(
                   return_items: [order.inventory_units.last.return_items.create(return_authorization: create(:return_authorization, order: order, stock_location: stock_location))],
                   stock_location: stock_location
-                )
+                ).tap do |cr|
+                  cr.return_items.each(&:receive!)
+                end
               end
 
               it_behaves_like "does not receive the return items" do
@@ -207,13 +211,60 @@ module Spree
                 Spree::CustomerReturn.create!(
                   return_items: order.inventory_units.map { |iu| iu.return_items.create return_authorization: create(:return_authorization, order: order, stock_location: stock_location) },
                   stock_location: stock_location
-                )
+                ).tap do |cr|
+                  cr.return_items.each(&:receive!)
+                end
               end
 
               it_behaves_like "does not receive the return items" do
                 let(:error_status_code) { 200 }
                 let(:error_message) { /Customer return \w+ has already been processed/ }
                 let(:ignore_reception_status) { true }
+              end
+            end
+
+            context "return_items#receive! errors for some unknown reason" do
+              let(:faux_error_message) { "An internal 3rr0r occurred" }
+
+              it_behaves_like "does not receive the return items" do
+                before do
+                  allow_any_instance_of(Spree::ReturnItem).to receive(:receive!).and_raise(faux_error_message)
+                end
+                let(:error_status_code) { 500 }
+                let(:error_message) do
+                  basic_error_message = "Customer return could not be fully processed, errors: "
+                  Regexp.new( basic_error_message + faux_error_message)
+                end
+                let(:ignore_reception_status) { true }
+              end
+
+              context "with one item that fails" do
+                let!(:return_items) { handler.send(:return_items) }
+
+                before do
+                  allow(handler).to receive(:return_items).and_return(return_items)
+                  allow(return_items[0]).to receive(:receive!).and_call_original
+                  allow(return_items[1]).to receive(:receive!).and_raise(faux_error_message)
+                end
+
+                it "does not create any ReturnItems" do
+                  expect { subject }.not_to change { ReturnItem.count }
+                end
+
+                it "cleans up return_items that did not fail" do
+                  subject
+                  expect(return_items[0].id).not_to be_nil
+                  expect { return_items[0].reload }.to raise_error(ActiveRecord::RecordNotFound)
+                end
+
+                it "stops processing early" do
+                  expect(return_items[2]).not_to receive(:receive!)
+                  subject
+                end
+
+                it "does not save the CustomerReturn" do
+                  expect { subject }.not_to change { CustomerReturn.count }
+                end
               end
             end
 
@@ -277,12 +328,16 @@ module Spree
             end
           end
           context "the customer return requires manual intervention" do
-            before { Spree::CustomerReturn.any_instance.stub(:completely_decided?) { false } }
+            before do
+              allow_any_instance_of(Spree::CustomerReturn).to receive(:completely_decided?) { false }
+            end
             it_behaves_like "does not attempt to refund the customer"
           end
 
           context "the customer return has already been reimbursed" do
-            before { Spree::CustomerReturn.any_instance.stub(:fully_reimbursed?) { true } }
+            before do
+              allow_any_instance_of(Spree::CustomerReturn).to receive(:fully_reimbursed?) { true }
+            end
             it_behaves_like "does not attempt to refund the customer"
           end
         end

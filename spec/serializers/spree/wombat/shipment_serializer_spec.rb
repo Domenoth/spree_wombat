@@ -4,7 +4,7 @@ module Spree
   module Wombat
     describe ShipmentSerializer do
 
-      let(:shipment) { create(:shipment, address: create(:address), order: create(:order_with_line_items)) }
+      let(:shipment) { create(:order_with_line_items).shipments.first }
       let(:serialized_shipment) { JSON.parse (ShipmentSerializer.new(shipment, root: false).to_json) }
 
       it "serializes the number as id" do
@@ -49,13 +49,13 @@ module Spree
       end
 
       it "serializes the placed_on in ISO format" do
-        shipment.order.stub(:completed_at?).and_return true
-        shipment.order.stub(:completed_at).and_return Time.now.utc
+        allow(shipment.order).to receive(:completed_at?).and_return true
+        allow(shipment.order).to receive(:completed_at).and_return Time.now.utc
         expect(serialized_shipment["placed_on"]).to match /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/
       end
 
       it "serializes the shipped_at in ISO format" do
-        shipment.stub(:shipped_at).and_return Time.now.utc
+        allow(shipment).to receive(:shipped_at).and_return Time.now.utc
         expect(serialized_shipment["shipped_at"]).to match /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/
       end
 

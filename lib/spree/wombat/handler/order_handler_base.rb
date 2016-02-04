@@ -47,11 +47,11 @@ module Spree
         end
 
         def self.rehash_line_items(line_items)
-          line_items.map do |item|
+          line_items.each.with_index.inject({}) do |memo, (item, index)|
             sku = item.delete 'product_id'
             item = item.slice *Spree::LineItem.attribute_names
             item['sku'] = sku
-            item
+            memo.merge(index.to_s => item)
           end
         end
 

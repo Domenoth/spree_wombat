@@ -87,7 +87,14 @@ module Spree
                   "number"=> "AKJSKJHD",
                   "status"=> "completed",
                   "amount"=> 49.9,
-                  "payment_method"=> "bogus"
+                  "payment_method"=> "bogus",
+                  "source" => {
+                    name: 'Fox',
+                    last_digits: "7424",
+                    cc_type: "visa",
+                    year: '2022',
+                    month: "5"
+                  }
                 }
               ],
               "updated_at"=> "2014-10-01T13=>40=>55Z",

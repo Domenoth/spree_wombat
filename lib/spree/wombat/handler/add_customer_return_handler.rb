@@ -19,7 +19,7 @@ module Spree
             return response("Unable to create the requested amount of return items", 500)
           end
 
-          if customer_return.save
+          if try_save(customer_return)
             reimburse_customer_return!(customer_return)
             response "Customer return #{customer_return.id} was added", 200
           else
@@ -70,13 +70,21 @@ module Spree
         end
 
         def prune_received_return_items(return_items)
-          return_items.select { |ri| !ri.received? }
+          return_items.reject { |ri| ri.received? }
         end
 
         def sort_return_items(return_items)
           return_items = return_items.sort_by { |ri| -(ri.created_at || DateTime.now).to_i }
           return_items = return_items.sort_by { |ri| ri.return_authorization.try(:number) == customer_return_params[:rma] ? 0 : 1 }
           return_items.sort_by { |ri| ri.persisted? ? 0 : 1 }
+        end
+
+        def try_save(customer_return)
+          CustomerReturn.transaction do
+            customer_return.return_items.all? { |ri| ri.receive! } && customer_return.save.tap do |result|
+              raise ActiveRecord::Rollback unless result
+            end
+          end
         end
 
         def reimburse_customer_return!(customer_return)

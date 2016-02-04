@@ -1,4 +1,4 @@
-module SpreeWombat
+module SolidusWombat
   module Generators
     class InstallGenerator < Rails::Generators::Base
 

@@ -17,7 +17,7 @@ module Spree
           let!(:state) { create(:state, :country => country, name: "California", abbr: "CA") }
 
           before do
-            Spree::Variant.stub(:find_by_sku).and_return(order.variants.first)
+            allow(Spree::Variant).to receive(:find_by_sku).and_return(order.variants.first)
           end
 
           it "will add a new shipment to the order" do

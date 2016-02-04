@@ -22,7 +22,6 @@ rescue LoadError
 end
 
 require 'rspec/rails'
-require 'rspec/autorun'
 require 'database_cleaner'
 require 'ffaker'
 require 'hub/samples'
@@ -55,7 +54,7 @@ RSpec.configure do |config|
   end
 
   config.before do
-    HTTParty.stub :post
+    allow(HTTParty).to receive(:post)
     Spree::Wombat::Config[:connection_token] = "abc1233"
 
     DatabaseCleaner.start
@@ -69,6 +68,8 @@ RSpec.configure do |config|
   config.mock_with :rspec do |mocks|
     mocks.yield_receiver_to_any_instance_implementation_blocks = true
   end
+
+  config.order = :random
 end
 
 class Spree::Wombat::Handler::MyCustomHandler < Spree::Wombat::Handler::Base

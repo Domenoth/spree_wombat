@@ -69,7 +69,7 @@ module Spree
             end
 
             it 'should transition the shipment to the correct state, using the correct event' do
-              Spree::Shipment.any_instance.should_receive(:fire_state_event)
+              allow_any_instance_of(Spree::Shipment).to receive(:fire_state_event)
                                           .with(:cancel)
                                           .and_call_original
 

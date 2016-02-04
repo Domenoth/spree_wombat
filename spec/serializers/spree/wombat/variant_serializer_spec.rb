@@ -4,7 +4,9 @@ module Spree
   module Wombat
     describe VariantSerializer do
 
-      let(:variant) { create(:variant) }
+      let(:variant) do
+        create(:variant, weight: 1, height: 3, width: 5, depth: 7)
+      end
       let(:serialized_variant) { JSON.parse( VariantSerializer.new(variant, root: false).to_json) }
 
       context "format" do

@@ -5,7 +5,7 @@ module Spree
     describe Handler::UpdateProductHandler do
       before do
         img_fixture = File.open(File.expand_path('../../../../../fixtures/thinking-cat.jpg', __FILE__))
-        URI.stub(:parse).and_return img_fixture
+        allow(URI).to receive(:parse).and_return img_fixture
       end
 
       it "respond properly if product not found" do

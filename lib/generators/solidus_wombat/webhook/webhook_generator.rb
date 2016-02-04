@@ -1,4 +1,4 @@
-module SpreeWombat
+module SolidusWombat
   module Generators
     class WebhookGenerator < Rails::Generators::Base
 
